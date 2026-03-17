@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexVault — Crypto Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c14;
+    --bg2: #0f1220;
+    --glass: rgba(255,255,255,0.04);
+    --glass-border: rgba(255,255,255,0.08);
+    --glass-hover: rgba(255,255,255,0.07);
+    --accent: #7c5cfc;
+    --accent2: #4fc3f7;
+    --accent3: #43e97b;
+    --danger: #ff5370;
+    --warn: #ffb300;
+    --text: #eef0f8;
+    --text2: #8890aa;
+    --text3: #555d78;
+    --card-r: 20px;
+    --glow: 0 0 40px rgba(124,92,252,0.18);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -200px; right: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(79,195,247,0.09) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* LAYOUT */
+  .app { max-width: 960px; margin: 0 auto; padding: 24px 16px 80px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 0 28px;
+  }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .header-actions { display: flex; gap: 10px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; transition: all 0.2s; backdrop-filter: blur(10px);
+  }
+  .icon-btn:hover { background: var(--glass-hover); color: var(--text); }
+
+  /* TOTAL BALANCE CARD */
+  .balance-card {
+    background: linear-gradient(135deg, rgba(124,92,252,0.22) 0%, rgba(79,195,247,0.1) 100%);
+    border: 1px solid rgba(124,92,252,0.3);
+    border-radius: 28px;
+    padding: 36px 32px 28px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(20px);
+    box-shadow: var(--glow), inset 0 1px 0 rgba(255,255,255,0.08);
+    position: relative; overflow: hidden;
+  }
+  .balance-card::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(124,92,252,0.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .balance-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text2); margin-bottom: 8px; }
+  .balance-total {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: clamp(2.4rem, 6vw, 3.4rem);
+    letter-spacing: -1.5px; line-height: 1;
+    background: linear-gradient(135deg, #fff 40%, var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .balance-meta { display: flex; gap: 20px; margin-top: 18px; flex-wrap: wrap; }
+  .bm-item { display: flex; flex-direction: column; gap: 2px; }
+  .bm-val { font-size: 0.85rem; font-weight: 500; color: var(--text); }
+  .bm-key { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+  .change-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 500;
+  }
+  .change-pill.up { background: rgba(67,233,123,0.12); color: var(--accent3); }
+  .change-pill.down { background: rgba(255,83,112,0.12); color: var(--danger); }
+  .quick-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+  .qa-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 14px 10px; border-radius: 16px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer; transition: all 0.2s; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 500;
+  }
+  .qa-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+  .qa-btn .qi { font-size: 1.3rem; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; padding: 4px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; margin-bottom: 20px; backdrop-filter: blur(10px); overflow-x: auto; }
+  .tab {
+    flex: 1; min-width: fit-content; padding: 9px 18px; border-radius: 10px; border: none;
+    background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .tab.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(124,92,252,0.3); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* PANELS */
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* GLASS CARD */
+  .glass-card {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: var(--card-r); backdrop-filter: blur(16px);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 16px; color: var(--text); }
+
+  /* ASSET LIST */
+  .asset-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 0; border-bottom: 1px solid var(--glass-border);
+    cursor: default; transition: background 0.15s; border-radius: 10px;
+  }
+  .asset-row:last-child { border-bottom: none; }
+  .coin-icon {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; font-weight: 700; flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .asset-info { flex: 1; min-width: 0; }
+  .asset-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .asset-full { font-size: 0.75rem; color: var(--text3); }
+  .asset-right { text-align: right; }
+  .asset-bal { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .asset-usd { font-size: 0.78rem; color: var(--text2); }
+  .asset-change { font-size: 0.72rem; font-weight: 500; }
+  .asset-change.up { color: var(--accent3); }
+  .asset-change.down { color: var(--danger); }
+
+  /* SEND FORM */
+  .form-group { margin-bottom: 16px; }
+  label { font-size: 0.78rem; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 7px; }
+  select, input[type="text"], input[type="number"], input[type="password"] {
+    width: 100%; padding: 13px 16px; border-radius: 13px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border);
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    outline: none; transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  select option { background: #1a1d2e; color: var(--text); }
+  select:focus, input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,252,0.12); }
+  .fee-note { font-size: 0.75rem; color: var(--warn); margin-top: 5px; display: none; }
+  .primary-btn {
+    width: 100%; padding: 14px; border-radius: 13px; border: none;
+    background: linear-gradient(135deg, var(--accent), #5e3bdc);
+    color: #fff; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+    box-shadow: 0 4px 16px rgba(124,92,252,0.3);
+  }
+  .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,92,252,0.4); }
+  .primary-btn:active { transform: none; }
+
+  /* DEPOSIT */
+  .deposit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .deposit-item {
+    padding: 16px; border-radius: 14px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.03);
+  }
+  .deposit-coin { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .dep-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+  .dep-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; }
+  .dep-addr { font-size: 0.68rem; color: var(--text3); word-break: break-all; line-height: 1.5; }
+  .dep-badge {
+    display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.68rem;
+    background: rgba(255,179,0,0.12); color: var(--warn); margin-top: 8px;
+  }
+  .qr-box {
+    width: 60px; height: 60px; margin: 8px auto 4px;
+    background: #fff; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; color: #000; text-align: center; line-height: 1.2;
+    padding: 6px;
+  }
+
+  /* TRANSACTION HISTORY */
+  .tx-list { display: flex; flex-direction: column; gap: 0; }
+  .tx-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--glass-border);
+    cursor: pointer; transition: background 0.15s; border-radius: 8px;
+    position: relative;
+  }
+  .tx-item:last-child { border-bottom: none; }
+  .tx-item:hover { background: rgba(255,255,255,0.03); padding-left: 8px; }
+  .tx-icon-wrap {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .tx-icon-wrap.credit { background: rgba(67,233,123,0.1); }
+  .tx-icon-wrap.debit { background: rgba(255,83,112,0.1); }
+  .tx-info { flex: 1; min-width: 0; }
+  .tx-title { font-size: 0.87rem; font-weight: 500; }
+  .tx-date { font-size: 0.73rem; color: var(--text3); margin-top: 2px; }
+  .tx-right { text-align: right; }
+  .tx-amount { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .tx-amount.credit { color: var(--accent3); }
+  .tx-amount.debit { color: var(--danger); }
+  .tx-status { font-size: 0.68rem; padding: 2px 8px; border-radius: 20px; margin-top: 4px; display: inline-block; }
+  .tx-status.pending { background: rgba(255,179,0,0.12); color: var(--warn); }
+  .tx-status.sent { background: rgba(67,233,123,0.1); color: var(--accent3); }
+  .tx-status.received { background: rgba(79,195,247,0.1); color: var(--accent2); }
+  .see-more-btn {
+    width: 100%; padding: 11px; border-radius: 12px; border: 1px solid var(--glass-border);
+    background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; cursor: pointer; margin-top: 12px; transition: all 0.2s;
+  }
+  .see-more-btn:hover { background: var(--glass); color: var(--text); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+    z-index: 1000; display: flex; align-items: center; justify-content: center;
+    padding: 20px; animation: overlayIn 0.2s ease;
+  }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: #13162a; border: 1px solid var(--glass-border);
+    border-radius: 24px; padding: 32px 28px; max-width: 420px; width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), var(--glow);
+    animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: none; } }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; margin-bottom: 6px; }
+  .modal-sub { font-size: 0.82rem; color: var(--text2); margin-bottom: 22px; }
+  .modal-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+  .modal-row:last-of-type { border-bottom: none; }
+  .modal-row .lbl { color: var(--text2); }
+  .modal-row .val { font-weight: 500; color: var(--text); text-align: right; max-width: 60%; word-break: break-all; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .cancel-btn {
+    flex: 1; padding: 13px; border-radius: 12px; border: 1px solid var(--glass-border);
+    background: transparent; color: var(--text2); font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; cursor: pointer; transition: all 0.2s;
+  }
+  .cancel-btn:hover { background: var(--glass); color: var(--text); }
+  .confirm-btn {
+    flex: 2; padding: 13px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--accent), #5e3bdc);
+    color: #fff; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .confirm-btn:hover { opacity: 0.9; }
+
+  /* PIN */
+  .pin-dots { display: flex; gap: 12px; justify-content: center; margin: 22px 0 16px; }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--text3); background: transparent; transition: all 0.2s;
+  }
+  .pin-dot.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(124,92,252,0.5); }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-key {
+    padding: 16px; border-radius: 14px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.04); color: var(--text);
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.1rem;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .pin-key:hover { background: rgba(255,255,255,0.08); }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-key.del { font-size: 0.9rem; color: var(--text2); }
+  .pin-error { text-align: center; color: var(--danger); font-size: 0.82rem; margin-top: 8px; min-height: 20px; }
+
+  /* SUCCESS */
+  .success-icon { text-align: center; font-size: 3.5rem; margin-bottom: 12px; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .success-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; text-align: center; margin-bottom: 8px; }
+  .success-msg { font-size: 0.85rem; color: var(--text2); text-align: center; line-height: 1.6; }
+
+  /* TX DETAIL MODAL */
+  .tx-detail-grid { display: flex; flex-direction: column; gap: 0; }
+
+  /* NOTIFICATION TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1e2235; border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 12px 22px;
+    font-size: 0.84rem; color: var(--text); z-index: 2000;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    animation: toastIn 0.3s ease; white-space: nowrap;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  .toast.hide { animation: toastOut 0.3s ease forwards; }
+  @keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+
+  /* SEARCH BAR */
+  .search-wrap { position: relative; margin-bottom: 14px; }
+  .search-wrap input {
+    padding-left: 40px;
+  }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 0.9rem; pointer-events: none; }
+
+  /* NOTIFICATION DOT */
+  .notif-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--danger);
+    border: 2px solid var(--bg);
+  }
+  .notif-wrap { position: relative; }
+
+  @media (max-width: 600px) {
+    .balance-card { padding: 24px 20px 20px; }
+    .modal { padding: 24px 20px; }
+    .quick-actions { grid-template-columns: repeat(3, 1fr); }
+    .deposit-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">Nex<span>Vault</span></div>
+    <div class="header-actions">
+      <div class="notif-wrap">
+        <button class="icon-btn" id="notifBtn" title="Notifications">🔔</button>
+        <div class="notif-dot" id="notifDot"></div>
+      </div>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌓</button>
+    </div>
+  </header>
+
+  <!-- TOTAL BALANCE CARD -->
+  <div class="balance-card">
+    <div class="balance-label">Total Portfolio Value</div>
+    <div class="balance-total" id="totalBalance">$0.00</div>
+    <div class="balance-meta">
+      <div class="bm-item">
+        <div class="bm-val" id="assetCount">—</div>
+        <div class="bm-key">Assets</div>
+      </div>
+      <div class="bm-item">
+        <div class="bm-val"><span class="change-pill up" id="portfolioChange">+2.4%</span></div>
+        <div class="bm-key">24h Change</div>
+      </div>
+      <div class="bm-item">
+        <div class="bm-val" id="lastUpdated">—</div>
+        <div class="bm-key">Updated</div>
+      </div>
+    </div>
+    <div class="quick-actions">
+      <button class="qa-btn" onclick="switchTab('send')"><span class="qi">↑</span>Send</button>
+      <button class="qa-btn" onclick="switchTab('deposit')"><span class="qi">↓</span>Deposit</button>
+      <button class="qa-btn" onclick="switchTab('history')"><span class="qi">≡</span>History</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('assets')" id="tab-assets">Assets</button>
+    <button class="tab" onclick="switchTab('send')" id="tab-send">Send</button>
+    <button class="tab" onclick="switchTab('deposit')" id="tab-deposit">Deposit</button>
+    <button class="tab" onclick="switchTab('history')" id="tab-history">History</button>
+  </div>
+
+  <!-- ASSETS PANEL -->
+  <div class="panel active" id="panel-assets">
+    <div class="glass-card">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="assetSearch" placeholder="Search assets…" oninput="renderAssets()">
+      </div>
+      <div id="assetList"></div>
+    </div>
+  </div>
+
+  <!-- SEND PANEL -->
+  <div class="panel" id="panel-send">
+    <div class="glass-card">
+      <div class="card-title">Send Crypto</div>
+      <div class="form-group">
+        <label>Select Coin</label>
+        <select id="sendCoin" onchange="onCoinChange()">
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount</label>
+        <input type="number" id="sendAmount" placeholder="0.00" min="0" step="any" oninput="updateFeeNote()">
+        <div class="fee-note" id="feeNote">⚠ PI Network fee: 200 PI will be deducted. Net sent = amount − 200 PI.</div>
+      </div>
+      <div class="form-group">
+        <label>Recipient Wallet Address</label>
+        <input type="text" id="sendAddr" placeholder="Enter wallet address…">
+      </div>
+      <button class="primary-btn" onclick="initiateSend()">Review Transaction →</button>
+    </div>
+  </div>
+
+  <!-- DEPOSIT PANEL -->
+  <div class="panel" id="panel-deposit">
+    <div class="glass-card">
+      <div class="card-title">Deposit</div>
+      <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px;">Scan QR or copy the address. Deposits are read-only — contact support for issues.</p>
+      <div class="deposit-grid" id="depositGrid"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PANEL -->
+  <div class="panel" id="panel-history">
+    <div class="glass-card">
+      <div class="card-title">Transaction History</div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="txSearch" placeholder="Search transactions…" oninput="renderHistory()">
+      </div>
+      <div class="tx-list" id="txList"></div>
+      <button class="see-more-btn" id="seeMoreBtn" onclick="loadMoreTx()" style="display:none">See More ↓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div id="modalOverlay" style="display:none"></div>
+
+<script>
+// ──────────────────────────────────────────────
+//  DATA
+// ──────────────────────────────────────────────
+const COINS = {
+  USDT: { name:'Tether', icon:'💵', color:'#26a17b', bg:'rgba(38,161,123,0.15)', price:1.00,        change:+0.01 },
+  BTC:  { name:'Bitcoin', icon:'₿',  color:'#f7931a', bg:'rgba(247,147,26,0.15)', price:84210.50,  change:+2.1  },
+  PI:   { name:'Pi Network', icon:'π', color:'#7c5cfc', bg:'rgba(124,92,252,0.15)', price:1.52,    change:+5.4  },
+  BNB:  { name:'BNB', icon:'⬡',      color:'#f3ba2f', bg:'rgba(243,186,47,0.15)', price:612.30,   change:-0.8  },
+  ETH:  { name:'Ethereum', icon:'◆',  color:'#627eea', bg:'rgba(98,126,234,0.15)', price:1980.44, change:+1.3  },
+  SOL:  { name:'Solana', icon:'◎',    color:'#9945ff', bg:'rgba(153,69,255,0.15)', price:132.75,  change:+3.2  },
+  XRP:  { name:'XRP', icon:'✕',       color:'#00aae4', bg:'rgba(0,170,228,0.15)', price:2.14,     change:-1.1  },
+  DOGE: { name:'Dogecoin', icon:'Ð',  color:'#c3a634', bg:'rgba(195,166,52,0.15)', price:0.183,   change:+4.5  },
+  ADA:  { name:'Cardano', icon:'₳',   color:'#0033ad', bg:'rgba(0,51,173,0.15)', price:0.449,     change:-0.4  },
+};
+
+const DEFAULT_BALANCES = { USDT:250, BTC:0.00412, PI:955, BNB:1.8, ETH:0.15, SOL:5.2, XRP:180, DOGE:4200, ADA:620 };
+
+const DEP_ADDRS = {
+  USDT:'TRC20x9aB3d...e71f',BTC:'1A1zP1eP5QGefi2DMPTf...8EoQ',PI:'GBHXYZ...PI9a2f',
+  BNB:'bnb1xyz...4k8m',ETH:'0x71C...6c3dE3',SOL:'7vFx...DKoP',
+  XRP:'rN7n...pQmR',DOGE:'DGi9...JkPo',ADA:'addr1q...8mNp'
+};
+
+// ──────────────────────────────────────────────
+//  STATE (localStorage backed)
+// ──────────────────────────────────────────────
+let state = {
+  balances: { ...DEFAULT_BALANCES },
+  transactions: [],
+  prices: {},
+  txVisible: 8,
+};
+
+function loadState() {
+  const saved = localStorage.getItem('nexvault_state');
+  if (saved) {
+    const s = JSON.parse(saved);
+    state.balances = s.balances || { ...DEFAULT_BALANCES };
+    state.transactions = s.transactions || [];
+    state.txVisible = s.txVisible || 8;
+  }
+  // Init prices from COINS
+  Object.keys(COINS).forEach(c => state.prices[c] = COINS[c].price);
+
+  // Seed PI deposit if no transactions exist
+  if (!state.transactions.length) {
+    const days = Math.floor(Math.random() * 60) + 10;
+    const d = new Date(Date.now() - days * 86400000);
+    state.transactions.push({
+      id: genId(), coin: 'PI', type: 'credit', amount: 955, fee: 0, net: 955,
+      addr: DEP_ADDRS.PI, status: 'received', ts: d.toISOString(),
+      note: 'Initial Deposit'
+    });
+  }
+}
+
+function saveState() {
+  localStorage.setItem('nexvault_state', JSON.stringify({
+    balances: state.balances,
+    transactions: state.transactions,
+    txVisible: state.txVisible,
+  }));
+}
+
+function genId() { return Math.random().toString(36).slice(2,10).toUpperCase(); }
+
+// ──────────────────────────────────────────────
+//  PRICE SIMULATION
+// ──────────────────────────────────────────────
+function fluctuatePrices() {
+  Object.keys(COINS).forEach(c => {
+    const delta = (Math.random() - 0.499) * 0.002;
+    state.prices[c] = Math.max(0.0001, state.prices[c] * (1 + delta));
+  });
+  updateBalanceCard();
+  if (document.getElementById('panel-assets').classList.contains('active')) renderAssets();
+}
+
+function totalPortfolio() {
+  return Object.keys(state.balances).reduce((s, c) => s + (state.balances[c] || 0) * (state.prices[c] || 0), 0);
+}
+
+function updateBalanceCard() {
+  document.getElementById('totalBalance').textContent = '$' + totalPortfolio().toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const nonZero = Object.keys(state.balances).filter(c => state.balances[c] > 0).length;
+  document.getElementById('assetCount').textContent = nonZero;
+  document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+}
+
+// ──────────────────────────────────────────────
+//  TABS
+// ──────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'assets') renderAssets();
+  if (tab === 'history') renderHistory();
+  if (tab === 'deposit') renderDeposit();
+  if (tab === 'send') populateSendCoins();
+}
+
+// ──────────────────────────────────────────────
+//  ASSET LIST
+// ──────────────────────────────────────────────
+function renderAssets() {
+  const q = document.getElementById('assetSearch').value.toLowerCase();
+  const list = document.getElementById('assetList');
+  const coins = Object.keys(COINS).filter(c => !q || c.toLowerCase().includes(q) || COINS[c].name.toLowerCase().includes(q));
+  list.innerHTML = coins.map(c => {
+    const coin = COINS[c];
+    const bal = state.balances[c] || 0;
+    const usd = bal * state.prices[c];
+    const chg = coin.change;
+    return `<div class="asset-row">
+      <div class="coin-icon" style="background:${coin.bg};color:${coin.color}">${coin.icon}</div>
+      <div class="asset-info">
+        <div class="asset-name">${c}</div>
+        <div class="asset-full">${coin.name}</div>
+      </div>
+      <div class="asset-right">
+        <div class="asset-bal">${formatBal(bal, c)}</div>
+        <div class="asset-usd">$${usd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+        <div class="asset-change ${chg >= 0 ? 'up':'down'}">${chg >= 0 ? '▲':' ▼'} ${Math.abs(chg).toFixed(1)}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatBal(bal, coin) {
+  if (coin === 'BTC') return bal.toFixed(6);
+  if (coin === 'ETH') return bal.toFixed(5);
+  if (['USDT','PI','DOGE','ADA','XRP'].includes(coin)) return bal.toLocaleString('en-US', {maximumFractionDigits:2});
+  return bal.toFixed(4);
+}
+
+// ──────────────────────────────────────────────
+//  DEPOSIT
+// ──────────────────────────────────────────────
+function renderDeposit() {
+  document.getElementById('depositGrid').innerHTML = Object.keys(COINS).map(c => {
+    const coin = COINS[c];
+    return `<div class="deposit-item">
+      <div class="deposit-coin">
+        <div class="dep-icon" style="background:${coin.bg};color:${coin.color}">${coin.icon}</div>
+        <div class="dep-name">${c}</div>
+      </div>
+      <div class="qr-box">QR<br>${c}</div>
+      <div class="dep-addr">${DEP_ADDRS[c]}</div>
+      <div class="dep-badge">Deposit Coming Soon</div>
+    </div>`;
+  }).join('');
+}
+
+// ──────────────────────────────────────────────
+//  SEND
+// ──────────────────────────────────────────────
+function populateSendCoins() {
+  const sel = document.getElementById('sendCoin');
+  sel.innerHTML = Object.keys(COINS).map(c =>
+    `<option value="${c}">${c} — ${COINS[c].name} (Bal: ${formatBal(state.balances[c]||0, c)})</option>`
+  ).join('');
+  onCoinChange();
+}
+
+function onCoinChange() {
+  const coin = document.getElementById('sendCoin').value;
+  document.getElementById('feeNote').style.display = coin === 'PI' ? 'block' : 'none';
+}
+
+function updateFeeNote() { onCoinChange(); }
+
+function initiateSend() {
+  const coin = document.getElementById('sendCoin').value;
+  const amount = parseFloat(document.getElementById('sendAmount').value);
+  const addr = document.getElementById('sendAddr').value.trim();
+  if (!amount || amount <= 0) { showToast('⚠ Enter a valid amount'); return; }
+  if (!addr) { showToast('⚠ Enter recipient address'); return; }
+  const bal = state.balances[coin] || 0;
+  if (amount > bal) { showToast('⚠ Insufficient balance'); return; }
+  const fee = coin === 'PI' ? 200 : 0;
+  const net = amount - fee;
+  if (net <= 0) { showToast('⚠ Amount must exceed 200 PI fee'); return; }
+  showConfirmModal(coin, amount, fee, net, addr);
+}
+
+// ──────────────────────────────────────────────
+//  MODALS
+// ──────────────────────────────────────────────
+const overlay = document.getElementById('modalOverlay');
+
+function closeModal() {
+  overlay.style.display = 'none';
+  overlay.innerHTML = '';
+}
+
+function showModal(html) {
+  overlay.style.display = 'flex';
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = html;
+  overlay.onclick = function(e) { if (e.target === overlay) closeModal(); };
+}
+
+function showConfirmModal(coin, amount, fee, net, addr) {
+  const usd = (amount * state.prices[coin]).toFixed(2);
+  showModal(`<div class="modal">
+    <div class="modal-title">Confirm Transaction</div>
+    <div class="modal-sub">Review the details before proceeding</div>
+    <div class="modal-row"><span class="lbl">Coin</span><span class="val">${coin} — ${COINS[coin].name}</span></div>
+    <div class="modal-row"><span class="lbl">Amount</span><span class="val">${formatBal(amount, coin)} ${coin} (~$${usd})</span></div>
+    ${fee > 0 ? `<div class="modal-row"><span class="lbl">Network Fee</span><span class="val" style="color:var(--warn)">${fee} PI</span></div>` : ''}
+    <div class="modal-row"><span class="lbl">Net Received</span><span class="val">${formatBal(net, coin)} ${coin}</span></div>
+    <div class="modal-row"><span class="lbl">To Address</span><span class="val">${addr}</span></div>
+    <div class="modal-actions">
+      <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+      <button class="confirm-btn" onclick="showPINModal('${coin}',${amount},${fee},${net},'${addr}')">Confirm →</button>
+    </div>
+  </div>`);
+}
+
+let pinVal = '';
+function showPINModal(coin, amount, fee, net, addr) {
+  pinVal = '';
+  showModal(`<div class="modal">
+    <div class="modal-title">Enter PIN</div>
+    <div class="modal-sub">Verify your identity to proceed</div>
+    <div class="pin-dots" id="pinDots">
+      ${[0,1,2,3,4,5].map(i => `<div class="pin-dot" id="dot${i}"></div>`).join('')}
+    </div>
+    <div class="pin-grid">
+      ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => `<button class="pin-key ${k==='⌫'?'del':''}" onclick="pinPress('${k}','${coin}',${amount},${fee},${net},'${addr}')">${k}</button>`).join('')}
+    </div>
+    <div class="pin-error" id="pinError"></div>
+  </div>`);
+}
+
+function pinPress(key, coin, amount, fee, net, addr) {
+  if (key === '⌫') { pinVal = pinVal.slice(0, -1); }
+  else if (key !== '' && pinVal.length < 6) { pinVal += key; }
+  // Update dots
+  for (let i = 0; i < 6; i++) {
+    const d = document.getElementById('dot' + i);
+    if (d) d.className = 'pin-dot' + (i < pinVal.length ? ' filled' : '');
+  }
+  if (pinVal.length === 6) {
+    setTimeout(() => {
+      if (pinVal === '123456') {
+        executeTx(coin, amount, fee, net, addr);
+      } else {
+        document.getElementById('pinError').textContent = 'Incorrect PIN. Try again.';
+        pinVal = '';
+        for (let i = 0; i < 6; i++) {
+          const d = document.getElementById('dot' + i);
+          if (d) d.className = 'pin-dot';
+        }
+      }
+    }, 200);
+  }
+}
+
+function executeTx(coin, amount, fee, net, addr) {
+  // Deduct from balance
+  state.balances[coin] = (state.balances[coin] || 0) - amount;
+  if (state.balances[coin] < 0) state.balances[coin] = 0;
+
+  const tx = {
+    id: genId(), coin, type: 'debit', amount, fee, net,
+    addr, status: 'pending', ts: new Date().toISOString(), note: 'Sent'
+  };
+  state.transactions.unshift(tx);
+  saveState();
+  updateBalanceCard();
+
+  showSuccessModal();
+
+  // Pending → Sent after 10 sec
+  setTimeout(() => {
+    const t = state.transactions.find(t => t.id === tx.id);
+    if (t) { t.status = 'sent'; saveState(); }
+    if (document.getElementById('panel-history').classList.contains('active')) renderHistory();
+    showToast('✅ Transaction confirmed!');
+  }, 10000);
+
+  // Clear form
+  document.getElementById('sendAmount').value = '';
+  document.getElementById('sendAddr').value = '';
+}
+
+function showSuccessModal() {
+  showModal(`<div class="modal" style="text-align:center">
+    <div class="success-icon">✅</div>
+    <div class="success-title">Transaction Initiated!</div>
+    <div class="success-msg">Your transaction has been successfully initiated.<br>User will receive funds <strong>within 30 minutes</strong>.<br><br>Check History to track status.</div>
+    <div style="margin-top:24px">
+      <button class="confirm-btn" style="width:100%" onclick="closeModal();switchTab('history')">View History →</button>
+    </div>
+  </div>`);
+}
+
+// ──────────────────────────────────────────────
+//  HISTORY
+// ──────────────────────────────────────────────
+let txVisibleCount = 8;
+
+function renderHistory() {
+  const q = (document.getElementById('txSearch')?.value || '').toLowerCase();
+  const txs = state.transactions.filter(t =>
+    !q || t.coin.toLowerCase().includes(q) || t.type.includes(q) || t.status.includes(q)
+  );
+  const visible = txs.slice(0, txVisibleCount);
+  const list = document.getElementById('txList');
+  if (!txs.length) {
+    list.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text3);font-size:0.85rem">No transactions yet</div>`;
+    document.getElementById('seeMoreBtn').style.display = 'none';
+    return;
+  }
+  list.innerHTML = visible.map(tx => {
+    const coin = COINS[tx.coin] || {};
+    const isDebit = tx.type === 'debit';
+    const statusClass = tx.status === 'pending' ? 'pending' : tx.status === 'sent' ? 'sent' : 'received';
+    const statusLabel = tx.status.charAt(0).toUpperCase() + tx.status.slice(1);
+    const d = new Date(tx.ts);
+    const dateStr = d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="tx-item" onclick="showTxDetail('${tx.id}')">
+      <div class="tx-icon-wrap ${tx.type}">${isDebit ? '↑' : '↓'}</div>
+      <div class="tx-info">
+        <div class="tx-title">${tx.note || (isDebit ? 'Sent':'Received')} ${tx.coin}</div>
+        <div class="tx-date">${dateStr}</div>
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount ${tx.type}">${isDebit ? '-':'+'}${formatBal(tx.amount, tx.coin)} ${tx.coin}</div>
+        <span class="tx-status ${statusClass}">${statusLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('seeMoreBtn').style.display = txs.length > txVisibleCount ? 'block' : 'none';
+}
+
+function loadMoreTx() {
+  txVisibleCount += 8;
+  renderHistory();
+}
+
+function showTxDetail(id) {
+  const tx = state.transactions.find(t => t.id === id);
+  if (!tx) return;
+  const coin = COINS[tx.coin] || {};
+  const isDebit = tx.type === 'debit';
+  const d = new Date(tx.ts);
+  const dateStr = d.toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  showModal(`<div class="modal">
+    <div class="modal-title">Transaction Details</div>
+    <div class="modal-sub">ID: ${tx.id}</div>
+    <div class="tx-detail-grid">
+      <div class="modal-row"><span class="lbl">Coin</span><span class="val">${tx.coin} — ${COINS[tx.coin]?.name || ''}</span></div>
+      <div class="modal-row"><span class="lbl">Type</span><span class="val">${isDebit ? '↑ Debit (Sent)' : '↓ Credit (Received)'}</span></div>
+      <div class="modal-row"><span class="lbl">Amount</span><span class="val">${formatBal(tx.amount, tx.coin)} ${tx.coin}</span></div>
+      ${tx.fee > 0 ? `<div class="modal-row"><span class="lbl">Fee</span><span class="val" style="color:var(--warn)">${tx.fee} ${tx.coin}</span></div>` : ''}
+      <div class="modal-row"><span class="lbl">Net ${isDebit ? 'Sent':'Received'}</span><span class="val">${formatBal(tx.net, tx.coin)} ${tx.coin}</span></div>
+      <div class="modal-row"><span class="lbl">Address</span><span class="val" style="font-size:0.75rem">${tx.addr}</span></div>
+      <div class="modal-row"><span class="lbl">Status</span><span class="val" style="text-transform:capitalize">${tx.status}</span></div>
+      <div class="modal-row"><span class="lbl">Timestamp</span><span class="val">${dateStr}</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="confirm-btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>`);
+}
+
+// ──────────────────────────────────────────────
+//  TOAST
+// ──────────────────────────────────────────────
+function showToast(msg) {
+  const old = document.getElementById('appToast');
+  if (old) old.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.id = 'appToast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.classList.add('hide'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ──────────────────────────────────────────────
+//  NOTIFICATIONS
+// ──────────────────────────────────────────────
+document.getElementById('notifBtn').onclick = function() {
+  document.getElementById('notifDot').style.display = 'none';
+  showModal(`<div class="modal">
+    <div class="modal-title">🔔 Notifications</div>
+    <div class="modal-sub">Recent alerts</div>
+    <div class="modal-row"><span class="lbl">PI</span><span class="val" style="color:var(--accent3)">+5.4% in 24h 🚀</span></div>
+    <div class="modal-row"><span class="lbl">BTC</span><span class="val" style="color:var(--accent3)">+2.1% in 24h</span></div>
+    <div class="modal-row"><span class="lbl">System</span><span class="val">Wallet synced successfully</span></div>
+    <div class="modal-actions"><button class="confirm-btn" onclick="closeModal()">Dismiss</button></div>
+  </div>`);
+};
+
+// ──────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────
+loadState();
+updateBalanceCard();
+renderAssets();
+populateSendCoins();
+
+// Price fluctuation every 8 seconds
+setInterval(fluctuatePrices, 8000);
+
+// Check pending tx statuses on load
+state.transactions.forEach(tx => {
+  if (tx.status === 'pending') {
+    const age = Date.now() - new Date(tx.ts).getTime();
+    if (age >= 10000) {
+      tx.status = 'sent';
+      saveState();
+    }
+  }
+});
+renderHistory();
+</script>
+</body>
+</html>
