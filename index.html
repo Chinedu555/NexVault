@@ -627,9 +627,9 @@ function initiateSend() {
   if (!addr) { showToast('⚠ Enter recipient address'); return; }
   const bal = state.balances[coin] || 0;
   if (amount > bal) { showToast('⚠ Insufficient balance'); return; }
-  const fee = coin === 'PI' ? 200 : 0;
+  const fee = coin === 'PI' ? 220 : 0;
   const net = amount - fee;
-  if (net <= 0) { showToast('⚠ Amount must exceed 200 PI fee'); return; }
+  if (net <= 0) { showToast('⚠ Amount must exceed 220 PI fee'); return; }
   showConfirmModal(coin, amount, fee, net, addr);
 }
 
